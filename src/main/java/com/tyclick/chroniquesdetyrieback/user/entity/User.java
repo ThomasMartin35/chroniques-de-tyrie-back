@@ -48,21 +48,21 @@ public class User {
 
     // RELATIONS //
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "avatar_id")
-    private Media avatar;
-
-    @OneToMany(mappedBy = "author")
-    private Set<Content> contents = new HashSet<>();
-
-    @OneToMany(mappedBy = "author")
-    private Set<Comment> comments = new HashSet<>();
-
-    @OneToMany(mappedBy = "reportedBy")
-    private Set<CommentReport> reports = new HashSet<>();
-
-    @OneToMany(mappedBy = "uploadedBy")
-    private Set<Media> uploadedMedia = new HashSet<>();
+//    @ManyToOne(fetch = FetchType.LAZY)
+//    @JoinColumn(name = "avatar_id")
+//    private Media avatar;
+//
+//    @OneToMany(mappedBy = "author")
+//    private Set<Content> contents = new HashSet<>();
+//
+//    @OneToMany(mappedBy = "author")
+//    private Set<Comment> comments = new HashSet<>();
+//
+//    @OneToMany(mappedBy = "reportedBy")
+//    private Set<CommentReport> reports = new HashSet<>();
+//
+//    @OneToMany(mappedBy = "uploadedBy")
+//    private Set<Media> uploadedMedia = new HashSet<>();
 
     // TIMESTAMPS //
 
