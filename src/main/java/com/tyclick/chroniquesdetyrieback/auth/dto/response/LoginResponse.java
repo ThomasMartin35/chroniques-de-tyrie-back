@@ -7,8 +7,11 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RegisterResponse {
+public class LoginResponse {
 
-    private String message;
+    private String token;
+
+    private String tokenType;
 
 }
+

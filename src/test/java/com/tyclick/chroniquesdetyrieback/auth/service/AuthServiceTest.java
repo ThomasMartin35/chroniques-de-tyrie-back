@@ -1,8 +1,13 @@
 package com.tyclick.chroniquesdetyrieback.auth.service;
 
+import com.tyclick.chroniquesdetyrieback.auth.dto.request.LoginRequest;
 import com.tyclick.chroniquesdetyrieback.auth.dto.request.RegisterRequest;
+import com.tyclick.chroniquesdetyrieback.auth.dto.response.LoginResponse;
 import com.tyclick.chroniquesdetyrieback.auth.dto.response.RegisterResponse;
+import com.tyclick.chroniquesdetyrieback.auth.jwt.JwtService;
 import com.tyclick.chroniquesdetyrieback.auth.mapper.AuthMapper;
+import com.tyclick.chroniquesdetyrieback.auth.security.CustomUserDetails;
+import com.tyclick.chroniquesdetyrieback.common.exception.AuthenticationFailedException;
 import com.tyclick.chroniquesdetyrieback.common.exception.BusinessException;
 import com.tyclick.chroniquesdetyrieback.user.entity.User;
 import com.tyclick.chroniquesdetyrieback.user.entity.UserRole;
@@ -12,6 +17,10 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -29,6 +38,15 @@ class AuthServiceTest {
 
     @Mock
     private AuthMapper authMapper;
+
+    @Mock
+    private AuthenticationManager authenticationManager;
+
+    @Mock
+    private JwtService jwtService;
+
+    @Mock
+    private Authentication authentication;
 
     @InjectMocks
     private AuthService authService;
@@ -149,4 +167,48 @@ class AuthServiceTest {
         verify(userRepository, never()).save(any());
     }
 
+    @Test
+    void shouldLoginSuccessfully() {
+        LoginRequest request = LoginRequest.builder()
+                .email("thomas@test.fr")
+                .password("password123!")
+                .build();
+
+        User user = User.builder()
+                .email("thomas@est.fr")
+                .build();
+
+        CustomUserDetails customUserDetails = new CustomUserDetails(user);
+
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenReturn(authentication);
+        when(authentication.getPrincipal()).thenReturn(customUserDetails);
+        when(jwtService.generateToken(customUserDetails)).thenReturn("mocked-jwt-token");
+
+        LoginResponse response = authService.login(request);
+        assertEquals("mocked-jwt-token", response.getToken());
+        assertEquals("Bearer", response.getTokenType());
+
+        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+        verify(jwtService).generateToken(customUserDetails);
+    }
+
+    @Test
+    void shouldThrowExceptionWhenLoginFails() {
+        LoginRequest request = LoginRequest.builder()
+                .email("thomas@test.fr")
+                .password("wrongpassword")
+                .build();
+
+        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
+                .thenThrow(new BadCredentialsException("Authentication failed"));
+        AuthenticationFailedException exception = assertThrows(
+                AuthenticationFailedException.class,
+                () -> authService.login(request)
+        );
+
+        assertEquals("Invalid email or password", exception.getMessage());
+        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+        verify(jwtService, never()).generateToken(any());
+    }
 }
