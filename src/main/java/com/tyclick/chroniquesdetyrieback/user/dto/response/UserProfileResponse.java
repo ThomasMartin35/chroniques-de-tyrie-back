@@ -1,4 +1,4 @@
-package com.tyclick.chroniquesdetyrieback.auth.dto.response;
+package com.tyclick.chroniquesdetyrieback.user.dto.response;
 
 import lombok.*;
 
