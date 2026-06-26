@@ -9,7 +9,7 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class CurrentUserResponse {
+public class UserProfileResponse {
 
     private UUID id;
 
@@ -18,4 +18,10 @@ public class CurrentUserResponse {
     private String email;
 
     private String role;
+
+    private String biography;
+
+    private String avatarUrl;
+
+    private Boolean isActive;
 }

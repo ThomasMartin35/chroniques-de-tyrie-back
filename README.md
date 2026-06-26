@@ -30,9 +30,11 @@ Le projet est développé en **Java 21** avec **Spring Boot** et expose une API 
 
 ## Prérequis
 
-- Java 21
-- PostgreSQL
-- Maven 3.9+
+![Java](https://img.shields.io/badge/Java-21-orange)
+
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3-green)
+
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-blue)
 
 ## Lancer le projet
 
