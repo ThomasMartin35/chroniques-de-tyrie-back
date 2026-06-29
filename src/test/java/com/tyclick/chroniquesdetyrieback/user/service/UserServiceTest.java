@@ -1,6 +1,8 @@
 package com.tyclick.chroniquesdetyrieback.user.service;
 
+import com.tyclick.chroniquesdetyrieback.common.dto.response.MessageResponse;
 import com.tyclick.chroniquesdetyrieback.common.exception.BusinessException;
+import com.tyclick.chroniquesdetyrieback.user.dto.request.ChangePasswordRequest;
 import com.tyclick.chroniquesdetyrieback.user.dto.request.UpdateProfileRequest;
 import com.tyclick.chroniquesdetyrieback.user.dto.response.UserProfileResponse;
 import com.tyclick.chroniquesdetyrieback.user.entity.User;
@@ -11,12 +13,12 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -27,6 +29,9 @@ class UserServiceTest {
 
     @Mock
     private UserMapper userMapper;
+
+    @Mock
+    private PasswordEncoder passwordEncoder;
 
     @InjectMocks
     private UserService userService;
@@ -209,5 +214,155 @@ class UserServiceTest {
         verify(userRepository, never()).existsByUsername(any());
         verify(userMapper).updateUserFromRequest(request, user);
         verify(userRepository).save(user);
+    }
+
+    @Test
+    void shouldChangePasswordSuccessfully() {
+        UUID userId = UUID.randomUUID();
+
+        // Create a mock ChangePasswordRequest
+        String currentPassword = "currentPassword";
+        String newPassword = "newPassword";
+        String confirmNewPassword = "newPassword";
+
+        ChangePasswordRequest changePasswordRequest = ChangePasswordRequest.builder()
+                .currentPassword(currentPassword)
+                .newPassword(newPassword)
+                .confirmNewPassword(confirmNewPassword)
+                .build();
+
+        // Create a mock User entity representing the current user
+        User user = User.builder()
+                .id(userId)
+                .passwordHash("hashedCurrentPassword")
+                .build();
+
+        // Mock the behavior of the userRepository and passwordEncoder
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches(currentPassword, user.getPasswordHash())).thenReturn(true);
+        when(passwordEncoder.matches(newPassword, user.getPasswordHash())).thenReturn(false);
+        when(passwordEncoder.encode(newPassword)).thenReturn("hashedNewPassword");
+
+        // Call the method under test
+        MessageResponse response = userService.changePassword(userId, changePasswordRequest);
+
+        // Verify the result
+        assertEquals("Password changed successfully", response.getMessage());
+        assertEquals("hashedNewPassword", user.getPasswordHash());
+        assertNotNull(user.getLastPasswordChangeAt());
+
+        verify(userRepository).findById(userId);
+        verify(passwordEncoder).matches(currentPassword, "hashedCurrentPassword");
+        verify(passwordEncoder).matches(newPassword, "hashedCurrentPassword");
+        verify(passwordEncoder).encode(newPassword);
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void shouldThrowExceptionWhenCurrentPasswordIsIncorrect() {
+        UUID userId = UUID.randomUUID();
+
+        // Create a mock ChangePasswordRequest with an incorrect current password
+        ChangePasswordRequest changePasswordRequest = ChangePasswordRequest.builder()
+                .currentPassword("wrongCurrentPassword")
+                .newPassword("newPassword")
+                .confirmNewPassword("newPassword")
+                .build();
+
+        // Create a mock User entity representing the current user
+        User user = User.builder()
+                .id(userId)
+                .passwordHash("hashedCurrentPassword")
+                .build();
+
+        // Mock the behavior of the userRepository and passwordEncoder
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("wrongCurrentPassword", user.getPasswordHash())).thenReturn(false);
+
+        // Call the method under test and assert that it throws a BusinessException
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> userService.changePassword(userId, changePasswordRequest)
+        );
+
+        assertEquals("Current password is incorrect", exception.getMessage());
+
+        verify(userRepository).findById(userId);
+        verify(passwordEncoder).matches("wrongCurrentPassword", "hashedCurrentPassword");
+        verify(passwordEncoder, never()).encode(any());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenNewPasswordIsSameAsCurrentPassword() {
+        UUID userId = UUID.randomUUID();
+
+        ChangePasswordRequest changePasswordRequest = ChangePasswordRequest.builder()
+                .currentPassword("currentPassword")
+                .newPassword("currentPassword")
+                .confirmNewPassword("currentPassword")
+                .build();
+
+        User user = User.builder()
+                .id(userId)
+                .passwordHash("hashedCurrentPassword")
+                .build();
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("currentPassword", "hashedCurrentPassword"))
+                .thenReturn(true);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> userService.changePassword(userId, changePasswordRequest)
+        );
+
+        assertEquals(
+                "New password must be different from the current password",
+                exception.getMessage()
+        );
+
+        verify(userRepository).findById(userId);
+        verify(passwordEncoder, times(2))
+                .matches("currentPassword", "hashedCurrentPassword");
+        verify(passwordEncoder, never()).encode(any());
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenNewPasswordAndConfirmPasswordDoNotMatch() {
+        UUID userId = UUID.randomUUID();
+
+        ChangePasswordRequest changePasswordRequest = ChangePasswordRequest.builder()
+                .currentPassword("currentPassword")
+                .newPassword("newPassword")
+                .confirmNewPassword("differentNewPassword")
+                .build();
+
+        User user = User.builder()
+                .id(userId)
+                .passwordHash("hashedCurrentPassword")
+                .build();
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("currentPassword", "hashedCurrentPassword"))
+                .thenReturn(true);
+        when(passwordEncoder.matches("newPassword", "hashedCurrentPassword"))
+                .thenReturn(false);
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> userService.changePassword(userId, changePasswordRequest)
+        );
+
+        assertEquals(
+                "New password and confirm password do not match",
+                exception.getMessage()
+        );
+
+        verify(userRepository).findById(userId);
+        verify(passwordEncoder).matches("currentPassword", "hashedCurrentPassword");
+        verify(passwordEncoder, never()).encode(any());
+        verify(userRepository, never()).save(any());
     }
 }

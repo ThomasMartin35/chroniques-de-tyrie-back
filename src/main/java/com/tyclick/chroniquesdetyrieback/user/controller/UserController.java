@@ -1,5 +1,7 @@
 package com.tyclick.chroniquesdetyrieback.user.controller;
 
+import com.tyclick.chroniquesdetyrieback.common.dto.response.MessageResponse;
+import com.tyclick.chroniquesdetyrieback.user.dto.request.ChangePasswordRequest;
 import com.tyclick.chroniquesdetyrieback.user.dto.request.UpdateProfileRequest;
 import com.tyclick.chroniquesdetyrieback.user.dto.response.UserProfileResponse;
 import com.tyclick.chroniquesdetyrieback.auth.security.CustomUserDetails;
@@ -29,5 +31,16 @@ public class UserController {
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         return userService.updateCurrentUserProfile(updateProfileRequest, userDetails.getUser().getId());
+    }
+
+    @PatchMapping("/me/password")
+    public MessageResponse changePassword(
+            @Valid @RequestBody ChangePasswordRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return userService.changePassword(
+                userDetails.getUser().getId(),
+                request
+        );
     }
 }
