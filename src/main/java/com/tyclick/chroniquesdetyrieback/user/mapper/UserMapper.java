@@ -10,6 +10,7 @@ public interface UserMapper {
 
     @Mapping(target = "role", expression = "java(user.getRole().name())")
     @Mapping(target = "avatarUrl", ignore = true)
+    @Mapping(source = "createdAt", target = "createdAt")
     UserProfileResponse toUserProfileResponse(User user);
 
     /**

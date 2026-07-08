@@ -35,15 +35,20 @@ public class UserService {
                 .orElseThrow(() -> new BusinessException("User not found"));
 
         if (updateProfileRequest.getUsername() != null
-                && !updateProfileRequest.getUsername().equals(currentUser.getUsername())) {
+                && !updateProfileRequest.getUsername().equalsIgnoreCase(currentUser.getUsername())) {
 
-            if (userRepository.existsByUsername(updateProfileRequest.getUsername())) {
-                throw new BusinessException("Username is already taken");
+            if (userRepository.existsByUsernameIgnoreCase(updateProfileRequest.getUsername())) {
+                throw new BusinessException("Username already in use");
             }
         }
 
         userMapper.updateUserFromRequest(updateProfileRequest, currentUser);
 
+        if (updateProfileRequest.getBiography() != null
+                && updateProfileRequest.getBiography().trim().isEmpty()) {
+            currentUser.setBiography(null);
+        }
+        
         User updatedUser = userRepository.save(currentUser);
 
         return userMapper.toUserProfileResponse(updatedUser);

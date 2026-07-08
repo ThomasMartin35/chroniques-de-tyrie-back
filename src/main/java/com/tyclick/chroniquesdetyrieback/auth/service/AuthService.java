@@ -40,12 +40,12 @@ public class AuthService {
      */
     public RegisterResponse register(RegisterRequest request) {
 
-        if (userRepository.existsByEmail(request.getEmail())) {
+        if (userRepository.existsByEmailIgnoreCase(request.getEmail())) {
             log.warn("Attempt to register with an already used email: {}", request.getEmail());
             throw new BusinessException("Email already in use");
         }
 
-        if (userRepository.existsByUsername(request.getUsername())) {
+        if (userRepository.existsByUsernameIgnoreCase(request.getUsername())) {
             log.warn("Attempt to register with an already used username: {}", request.getUsername());
             throw new BusinessException("Username already in use");
         }

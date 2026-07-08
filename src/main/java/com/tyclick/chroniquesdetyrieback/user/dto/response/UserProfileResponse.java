@@ -2,6 +2,7 @@ package com.tyclick.chroniquesdetyrieback.user.dto.response;
 
 import lombok.*;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Getter
@@ -24,4 +25,6 @@ public class UserProfileResponse {
     private String avatarUrl;
 
     private Boolean isActive;
+
+    private Instant createdAt;
 }
