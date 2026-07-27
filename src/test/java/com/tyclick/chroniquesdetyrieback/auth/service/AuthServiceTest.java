@@ -6,6 +6,10 @@ import com.tyclick.chroniquesdetyrieback.auth.dto.response.LoginResponse;
 import com.tyclick.chroniquesdetyrieback.auth.dto.response.RegisterResponse;
 import com.tyclick.chroniquesdetyrieback.auth.jwt.JwtService;
 import com.tyclick.chroniquesdetyrieback.auth.mapper.AuthMapper;
+import com.tyclick.chroniquesdetyrieback.auth.model.LoginResult;
+import com.tyclick.chroniquesdetyrieback.auth.refreshtoken.CreatedRefreshToken;
+import com.tyclick.chroniquesdetyrieback.auth.refreshtoken.RefreshToken;
+import com.tyclick.chroniquesdetyrieback.auth.refreshtoken.RefreshTokenService;
 import com.tyclick.chroniquesdetyrieback.auth.security.CustomUserDetails;
 import com.tyclick.chroniquesdetyrieback.common.exception.AuthenticationFailedException;
 import com.tyclick.chroniquesdetyrieback.common.exception.BusinessException;
@@ -22,6 +26,9 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
+
+import java.time.Instant;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -48,6 +55,9 @@ class AuthServiceTest {
     @Mock
     private Authentication authentication;
 
+    @Mock
+    private RefreshTokenService refreshTokenService;
+
     @InjectMocks
     private AuthService authService;
 
@@ -61,8 +71,8 @@ class AuthServiceTest {
                 .build();
 
         // Mock the behavior of the userRepository and passwordEncoder to simulate successful registration
-        when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
-        when(userRepository.existsByUsername(request.getUsername())).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCase(request.getEmail())).thenReturn(false);
+        when(userRepository.existsByUsernameIgnoreCase(request.getUsername())).thenReturn(false);
         when(passwordEncoder.encode(request.getPassword())).thenReturn("hashedPassword");
 
         // Mock the behavior of the authMapper to return a User object when mapping from RegisterRequest
@@ -94,7 +104,7 @@ class AuthServiceTest {
                 .build();
 
         // Mock the behavior of the userRepository to simulate that the email already exists
-        when(userRepository.existsByEmail(request.getEmail())).thenReturn(true);
+        when(userRepository.existsByEmailIgnoreCase(request.getEmail())).thenReturn(true);
 
         // Call the register method and assert that it throws a BusinessException with the expected message
         BusinessException exception = assertThrows(
@@ -106,7 +116,7 @@ class AuthServiceTest {
         assertEquals("Email already in use", exception.getMessage());
 
         // Verify that the userRepository's save method was never called since the registration should fail
-        verify(userRepository).existsByEmail(request.getEmail());
+        verify(userRepository).existsByEmailIgnoreCase(request.getEmail());
         verify(userRepository, never()).save(any());
     }
 
@@ -120,8 +130,8 @@ class AuthServiceTest {
                 .build();
 
         // Mock the behavior of the userRepository to simulate that the username already exists
-        when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
-        when(userRepository.existsByUsername(request.getUsername())).thenReturn(true);
+        when(userRepository.existsByEmailIgnoreCase(request.getEmail())).thenReturn(false);
+        when(userRepository.existsByUsernameIgnoreCase(request.getUsername())).thenReturn(true);
 
         // Call the register method and assert that it throws a BusinessException with the expected message
         BusinessException exception = assertThrows(
@@ -133,8 +143,8 @@ class AuthServiceTest {
         assertEquals("Username already in use", exception.getMessage());
 
         // Verify that the userRepository's save method was never called since the registration should fail
-        verify(userRepository).existsByEmail(request.getEmail());
-        verify(userRepository).existsByUsername(request.getUsername());
+        verify(userRepository).existsByEmailIgnoreCase(request.getEmail());
+        verify(userRepository).existsByUsernameIgnoreCase(request.getUsername());
         verify(userRepository, never()).save(any());
     }
 
@@ -148,8 +158,8 @@ class AuthServiceTest {
                 .build();
 
         // Mock the behavior of the userRepository to simulate that the email and username do not exist
-        when(userRepository.existsByEmail(request.getEmail())).thenReturn(false);
-        when(userRepository.existsByUsername(request.getUsername())).thenReturn(false);
+        when(userRepository.existsByEmailIgnoreCase(request.getEmail())).thenReturn(false);
+        when(userRepository.existsByUsernameIgnoreCase(request.getUsername())).thenReturn(false);
 
         // Call the register method and assert that it throws a BusinessException with the expected message
         BusinessException exception = assertThrows(
@@ -161,8 +171,8 @@ class AuthServiceTest {
         assertEquals("Passwords do not match", exception.getMessage());
 
         // Verify that the userRepository's save method was never called since the registration should fail
-        verify(userRepository).existsByEmail(request.getEmail());
-        verify(userRepository).existsByUsername(request.getUsername());
+        verify(userRepository).existsByEmailIgnoreCase(request.getEmail());
+        verify(userRepository).existsByUsernameIgnoreCase(request.getUsername());
         verify(passwordEncoder, never()).encode(any());
         verify(userRepository, never()).save(any());
     }
@@ -175,22 +185,55 @@ class AuthServiceTest {
                 .build();
 
         User user = User.builder()
-                .email("thomas@est.fr")
+                .email("thomas@test.fr")
                 .build();
 
         CustomUserDetails customUserDetails = new CustomUserDetails(user);
 
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenReturn(authentication);
-        when(authentication.getPrincipal()).thenReturn(customUserDetails);
-        when(jwtService.generateToken(customUserDetails)).thenReturn("mocked-jwt-token");
+        RefreshToken refreshToken = new RefreshToken();
 
-        LoginResponse response = authService.login(request);
-        assertEquals("mocked-jwt-token", response.getToken());
-        assertEquals("Bearer", response.getTokenType());
+        CreatedRefreshToken createdRefreshToken =
+                new CreatedRefreshToken(
+                        "mocked-refresh-token",
+                        refreshToken
+                );
 
-        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+        when(authenticationManager.authenticate(
+                any(UsernamePasswordAuthenticationToken.class)
+        )).thenReturn(authentication);
+
+        when(authentication.getPrincipal())
+                .thenReturn(customUserDetails);
+
+        when(jwtService.generateToken(customUserDetails))
+                .thenReturn("mocked-jwt-token");
+
+        when(refreshTokenService.create(user))
+                .thenReturn(createdRefreshToken);
+
+        LoginResult result = authService.login(request);
+
+        assertEquals(
+                "mocked-jwt-token",
+                result.response().getToken()
+        );
+
+        assertEquals(
+                "Bearer",
+                result.response().getTokenType()
+        );
+
+        assertEquals(
+                "mocked-refresh-token",
+                result.rawRefreshToken()
+        );
+
+        verify(authenticationManager).authenticate(
+                any(UsernamePasswordAuthenticationToken.class)
+        );
+
         verify(jwtService).generateToken(customUserDetails);
+        verify(refreshTokenService).create(user);
     }
 
     @Test
@@ -200,15 +243,148 @@ class AuthServiceTest {
                 .password("wrongpassword")
                 .build();
 
-        when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
-                .thenThrow(new BadCredentialsException("Authentication failed"));
+        when(authenticationManager.authenticate(
+                any(UsernamePasswordAuthenticationToken.class)
+        )).thenThrow(
+                new BadCredentialsException("Authentication failed")
+        );
+
         AuthenticationFailedException exception = assertThrows(
                 AuthenticationFailedException.class,
                 () -> authService.login(request)
         );
 
-        assertEquals("Invalid email or password", exception.getMessage());
-        verify(authenticationManager).authenticate(any(UsernamePasswordAuthenticationToken.class));
+        assertEquals(
+                "Invalid email or password",
+                exception.getMessage()
+        );
+
+        verify(authenticationManager).authenticate(
+                any(UsernamePasswordAuthenticationToken.class)
+        );
+
         verify(jwtService, never()).generateToken(any());
+        verify(refreshTokenService, never()).create(any());
+    }
+
+    @Test
+    void shouldRefreshAccessTokenSuccessfully() {
+        User user = User.builder()
+                .email("thomas@test.fr")
+                .build();
+
+        RefreshToken refreshToken = new RefreshToken();
+        refreshToken.setUser(user);
+        refreshToken.setExpiresAt(
+                Instant.now().plusSeconds(3600)
+        );
+
+        when(refreshTokenService.findByRawToken("raw-refresh-token"))
+                .thenReturn(Optional.of(refreshToken));
+
+        when(refreshTokenService.isValid(refreshToken))
+                .thenReturn(true);
+
+        when(jwtService.generateToken(any(CustomUserDetails.class)))
+                .thenReturn("new-access-token");
+
+        LoginResponse response =
+                authService.refresh("raw-refresh-token");
+
+        assertEquals("new-access-token", response.getToken());
+        assertEquals("Bearer", response.getTokenType());
+
+        verify(refreshTokenService)
+                .findByRawToken("raw-refresh-token");
+
+        verify(refreshTokenService)
+                .isValid(refreshToken);
+
+        verify(jwtService)
+                .generateToken(any(CustomUserDetails.class));
+    }
+
+    @Test
+    void shouldThrowExceptionWhenRefreshTokenIsNotFound() {
+        when(refreshTokenService.findByRawToken("unknown-token"))
+                .thenReturn(Optional.empty());
+
+        AuthenticationFailedException exception = assertThrows(
+                AuthenticationFailedException.class,
+                () -> authService.refresh("unknown-token")
+        );
+
+        assertEquals(
+                "Invalid refresh token",
+                exception.getMessage()
+        );
+
+        verify(refreshTokenService)
+                .findByRawToken("unknown-token");
+
+        verify(refreshTokenService, never())
+                .isValid(any());
+
+        verify(jwtService, never())
+                .generateToken(any());
+    }
+
+    @Test
+    void shouldThrowExceptionWhenRefreshTokenIsInvalid() {
+        RefreshToken refreshToken = new RefreshToken();
+
+        when(refreshTokenService.findByRawToken("invalid-token"))
+                .thenReturn(Optional.of(refreshToken));
+
+        when(refreshTokenService.isValid(refreshToken))
+                .thenReturn(false);
+
+        AuthenticationFailedException exception = assertThrows(
+                AuthenticationFailedException.class,
+                () -> authService.refresh("invalid-token")
+        );
+
+        assertEquals(
+                "Invalid or expired refresh token",
+                exception.getMessage()
+        );
+
+        verify(refreshTokenService)
+                .isValid(refreshToken);
+
+        verify(jwtService, never())
+                .generateToken(any());
+    }
+
+    @Test
+    void shouldRevokeRefreshTokenOnLogout() {
+
+        RefreshToken refreshToken = new RefreshToken();
+
+        when(refreshTokenService.findByRawToken("refresh-token"))
+                .thenReturn(Optional.of(refreshToken));
+
+        authService.logout("refresh-token");
+
+        verify(refreshTokenService)
+                .findByRawToken("refresh-token");
+
+        verify(refreshTokenService)
+                .revoke(refreshToken);
+    }
+
+    @Test
+    void shouldDoNothingWhenRefreshTokenDoesNotExist() {
+
+        when(refreshTokenService.findByRawToken("unknown"))
+                .thenReturn(Optional.empty());
+
+        authService.logout("unknown");
+
+        verify(refreshTokenService)
+                .findByRawToken("unknown");
+
+        verify(refreshTokenService, never())
+                .revoke(any());
     }
 }

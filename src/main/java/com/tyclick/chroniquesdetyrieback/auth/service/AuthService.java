@@ -6,6 +6,10 @@ import com.tyclick.chroniquesdetyrieback.auth.dto.response.LoginResponse;
 import com.tyclick.chroniquesdetyrieback.auth.dto.response.RegisterResponse;
 import com.tyclick.chroniquesdetyrieback.auth.jwt.JwtService;
 import com.tyclick.chroniquesdetyrieback.auth.mapper.AuthMapper;
+import com.tyclick.chroniquesdetyrieback.auth.model.LoginResult;
+import com.tyclick.chroniquesdetyrieback.auth.refreshtoken.CreatedRefreshToken;
+import com.tyclick.chroniquesdetyrieback.auth.refreshtoken.RefreshToken;
+import com.tyclick.chroniquesdetyrieback.auth.refreshtoken.RefreshTokenService;
 import com.tyclick.chroniquesdetyrieback.auth.security.CustomUserDetails;
 import com.tyclick.chroniquesdetyrieback.common.exception.AuthenticationFailedException;
 import com.tyclick.chroniquesdetyrieback.common.exception.BusinessException;
@@ -31,6 +35,7 @@ public class AuthService {
     private final AuthMapper authMapper;
     private final AuthenticationManager authenticationManager;
     private final JwtService jwtService;
+    private final RefreshTokenService refreshTokenService;
 
     /**
      * Registers a new user based on the provided RegisterRequest. It checks for existing email and username, validates password confirmation, and saves the new user to the repository.
@@ -71,7 +76,7 @@ public class AuthService {
      * @param request The LoginRequest containing user login details (email and password).
      * @return A LoginResponse containing the generated JWT token and its type.
      */
-    public LoginResponse login(LoginRequest request) {
+    public LoginResult login(LoginRequest request) {
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -84,16 +89,57 @@ public class AuthService {
                 throw new BusinessException("Authentication failed");
             }
 
-            String token = jwtService.generateToken(userDetails);
+            String accessToken = jwtService.generateToken(userDetails);
 
-            return LoginResponse.builder()
-                    .token(token)
+            CreatedRefreshToken createdRefreshToken =
+                    refreshTokenService.create(userDetails.getUser());
+
+            LoginResponse response = LoginResponse.builder()
+                    .token(accessToken)
                     .tokenType("Bearer")
                     .build();
 
+            return new LoginResult(
+                    response,
+                    createdRefreshToken.rawToken()
+            );
         } catch (AuthenticationException exception) {
             throw new AuthenticationFailedException("Invalid email or password");
         }
+    }
+
+    public LoginResponse refresh(String rawRefreshToken) {
+
+        RefreshToken refreshToken = refreshTokenService
+                .findByRawToken(rawRefreshToken)
+                .orElseThrow(() ->
+                        new AuthenticationFailedException(
+                                "Invalid refresh token"
+                        )
+                );
+
+        if (!refreshTokenService.isValid(refreshToken)) {
+            throw new AuthenticationFailedException(
+                    "Invalid or expired refresh token"
+            );
+        }
+
+        CustomUserDetails userDetails =
+                new CustomUserDetails(refreshToken.getUser());
+
+        String accessToken =
+                jwtService.generateToken(userDetails);
+
+        return LoginResponse.builder()
+                .token(accessToken)
+                .tokenType("Bearer")
+                .build();
+    }
+
+    public void logout(String rawRefreshToken) {
+
+        refreshTokenService.findByRawToken(rawRefreshToken)
+                .ifPresent(refreshTokenService::revoke);
     }
 
 }
