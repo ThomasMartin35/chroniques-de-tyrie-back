@@ -41,7 +41,8 @@ public class AuthController {
 
         ResponseCookie refreshTokenCookie =
                 refreshTokenCookieService.create(
-                        loginResult.rawRefreshToken()
+                        loginResult.rawRefreshToken(),
+                        request.isRememberMe()
                 );
 
         response.addHeader(

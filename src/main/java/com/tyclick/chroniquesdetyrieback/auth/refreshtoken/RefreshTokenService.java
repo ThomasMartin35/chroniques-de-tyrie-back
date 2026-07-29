@@ -22,9 +22,10 @@ public class RefreshTokenService {
     /**
      * Creates a new refresh token for the given user.
      * @param user The user for whom the refresh token is being created.
+     * @param rememberMe A boolean indicating whether the token should have a longer expiration time (for "remember me" functionality).
      * @return A CreatedRefreshToken object containing the raw token and the saved RefreshToken entity.
      */
-    public CreatedRefreshToken create(User user) {
+    public CreatedRefreshToken create(User user, boolean rememberMe) {
         String rawToken = tokenGenerator.generate();
         String tokenHash = tokenHasher.hash(rawToken);
 
@@ -32,7 +33,7 @@ public class RefreshTokenService {
         refreshToken.setUser(user);
         refreshToken.setTokenHash(tokenHash);
         refreshToken.setExpiresAt(
-                Instant.now().plus(refreshTokenProperties.expiration())
+                Instant.now().plus(refreshTokenProperties.getExpiration(rememberMe))
         );
 
         RefreshToken savedRefreshToken =

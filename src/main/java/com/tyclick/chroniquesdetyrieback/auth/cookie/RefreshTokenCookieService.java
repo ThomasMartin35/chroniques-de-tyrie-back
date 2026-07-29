@@ -13,14 +13,24 @@ public class RefreshTokenCookieService {
 
     private final RefreshTokenProperties refreshTokenProperties;
 
-    public ResponseCookie create(String rawRefreshToken) {
-        return ResponseCookie.from(COOKIE_NAME, rawRefreshToken)
-                .httpOnly(true)
-                .secure(false)
-                .sameSite("Strict")
-                .path("/api/auth")
-                .maxAge(refreshTokenProperties.expiration())
-                .build();
+    public ResponseCookie create(
+            String rawRefreshToken,
+            boolean rememberMe
+    ) {
+        ResponseCookie.ResponseCookieBuilder cookieBuilder =
+                ResponseCookie.from(COOKIE_NAME, rawRefreshToken)
+                        .httpOnly(true)
+                        .secure(false)
+                        .sameSite("Strict")
+                        .path("/api/auth");
+
+        if (rememberMe) {
+            cookieBuilder.maxAge(
+                    refreshTokenProperties.rememberMeExpiration()
+            );
+        }
+
+        return cookieBuilder.build();
     }
 
     public ResponseCookie delete() {

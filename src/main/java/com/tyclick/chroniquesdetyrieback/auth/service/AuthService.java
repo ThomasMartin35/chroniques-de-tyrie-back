@@ -92,7 +92,7 @@ public class AuthService {
             String accessToken = jwtService.generateToken(userDetails);
 
             CreatedRefreshToken createdRefreshToken =
-                    refreshTokenService.create(userDetails.getUser());
+                    refreshTokenService.create(userDetails.getUser(), request.isRememberMe());
 
             LoginResponse response = LoginResponse.builder()
                     .token(accessToken)

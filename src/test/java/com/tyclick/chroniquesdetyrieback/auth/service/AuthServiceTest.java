@@ -182,6 +182,7 @@ class AuthServiceTest {
         LoginRequest request = LoginRequest.builder()
                 .email("thomas@test.fr")
                 .password("password123!")
+                .rememberMe(true)
                 .build();
 
         User user = User.builder()
@@ -208,7 +209,7 @@ class AuthServiceTest {
         when(jwtService.generateToken(customUserDetails))
                 .thenReturn("mocked-jwt-token");
 
-        when(refreshTokenService.create(user))
+        when(refreshTokenService.create(user, true))
                 .thenReturn(createdRefreshToken);
 
         LoginResult result = authService.login(request);
@@ -233,7 +234,7 @@ class AuthServiceTest {
         );
 
         verify(jwtService).generateToken(customUserDetails);
-        verify(refreshTokenService).create(user);
+        verify(refreshTokenService).create(user, true);
     }
 
     @Test
@@ -241,6 +242,7 @@ class AuthServiceTest {
         LoginRequest request = LoginRequest.builder()
                 .email("thomas@test.fr")
                 .password("wrongpassword")
+                .rememberMe(true)
                 .build();
 
         when(authenticationManager.authenticate(
@@ -264,7 +266,7 @@ class AuthServiceTest {
         );
 
         verify(jwtService, never()).generateToken(any());
-        verify(refreshTokenService, never()).create(any());
+        verify(refreshTokenService, never()).create(any(), anyBoolean());
     }
 
     @Test

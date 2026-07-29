@@ -32,10 +32,17 @@ class RefreshTokenServiceTest {
 
     private RefreshTokenService refreshTokenService;
 
+    private static final Duration SESSION_EXPIRATION = Duration.ofHours(12);
+
+    private static final Duration REMEMBER_ME_EXPIRATION = Duration.ofDays(30);
+
     @BeforeEach
     void setUp() {
         RefreshTokenProperties properties =
-                new RefreshTokenProperties(Duration.ofDays(30));
+                new RefreshTokenProperties(
+                        SESSION_EXPIRATION,
+                        REMEMBER_ME_EXPIRATION
+                );
 
         refreshTokenService = new RefreshTokenService(
                 refreshTokenRepository,
@@ -46,7 +53,7 @@ class RefreshTokenServiceTest {
     }
 
     @Test
-    void shouldCreateRefreshToken() {
+    void shouldCreateRefreshTokenWithSessionExpirationWhenRememberMeIsFalse() {
         User user = new User();
 
         String rawToken = "token-brut-securise";
@@ -60,7 +67,8 @@ class RefreshTokenServiceTest {
 
         Instant beforeCreation = Instant.now();
 
-        CreatedRefreshToken result = refreshTokenService.create(user);
+        CreatedRefreshToken result =
+                refreshTokenService.create(user, false);
 
         Instant afterCreation = Instant.now();
 
@@ -80,8 +88,48 @@ class RefreshTokenServiceTest {
 
         assertThat(savedToken.getExpiresAt())
                 .isBetween(
-                        beforeCreation.plus(Duration.ofDays(30)),
-                        afterCreation.plus(Duration.ofDays(30))
+                        beforeCreation.plus(SESSION_EXPIRATION),
+                        afterCreation.plus(SESSION_EXPIRATION)
+                );
+    }
+
+    @Test
+    void shouldCreateRefreshTokenWithExtendedExpirationWhenRememberMeIsTrue() {
+        User user = new User();
+
+        String rawToken = "token-brut-securise";
+        String tokenHash = "hash-du-token";
+
+        when(tokenGenerator.generate()).thenReturn(rawToken);
+        when(tokenHasher.hash(rawToken)).thenReturn(tokenHash);
+
+        when(refreshTokenRepository.save(any(RefreshToken.class)))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
+        Instant beforeCreation = Instant.now();
+
+        CreatedRefreshToken result =
+                refreshTokenService.create(user, true);
+
+        Instant afterCreation = Instant.now();
+
+        assertThat(result.rawToken()).isEqualTo(rawToken);
+        assertThat(result.refreshToken()).isNotNull();
+
+        ArgumentCaptor<RefreshToken> tokenCaptor =
+                ArgumentCaptor.forClass(RefreshToken.class);
+
+        verify(refreshTokenRepository).save(tokenCaptor.capture());
+
+        RefreshToken savedToken = tokenCaptor.getValue();
+
+        assertThat(savedToken.getUser()).isEqualTo(user);
+        assertThat(savedToken.getTokenHash()).isEqualTo(tokenHash);
+
+        assertThat(savedToken.getExpiresAt())
+                .isBetween(
+                        beforeCreation.plus(REMEMBER_ME_EXPIRATION),
+                        afterCreation.plus(REMEMBER_ME_EXPIRATION)
                 );
     }
 
