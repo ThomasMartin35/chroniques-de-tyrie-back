@@ -16,11 +16,16 @@ import java.util.Date;
 @Service
 public class JwtService {
 
-    @Value("${app.jwt.secret}")
-    private String secretKey;
+    private final String secretKey;
+    private final long expirationTime;
 
-    @Value("${app.jwt.expiration}")
-    private long expirationTime;
+    public JwtService(
+            @Value("${app.jwt.secret}") String secretKey,
+            @Value("${app.jwt.expiration}") long expirationTime
+    ) {
+        this.secretKey = secretKey;
+        this.expirationTime = expirationTime;
+    }
 
     /**
      * Generates a JWT token for the given user details.

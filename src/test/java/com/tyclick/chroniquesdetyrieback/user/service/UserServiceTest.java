@@ -64,7 +64,7 @@ class UserServiceTest {
 
         // Mock the behavior of the userRepository and userMapper
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(userRepository.existsByUsername("NewUsername")).thenReturn(false);
+        when(userRepository.existsByUsernameIgnoreCase("NewUsername")).thenReturn(false);
         when(userRepository.save(user)).thenReturn(user);
         when(userMapper.toUserProfileResponse(user)).thenReturn(response);
 
@@ -73,7 +73,7 @@ class UserServiceTest {
 
         // Verify the result
         verify(userRepository).findById(userId);
-        verify(userRepository).existsByUsername("NewUsername");
+        verify(userRepository).existsByUsernameIgnoreCase("NewUsername");
         verify(userMapper).updateUserFromRequest(updateProfileRequest, user);
         verify(userRepository).save(user);
         verify(userMapper).toUserProfileResponse(user);
@@ -97,7 +97,7 @@ class UserServiceTest {
 
         // Mock the behavior of the userRepository to simulate that the username already exists
         when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-        when(userRepository.existsByUsername("UsernameUsed")).thenReturn(true);
+        when(userRepository.existsByUsernameIgnoreCase("UsernameUsed")).thenReturn(true);
 
         // Call the method under test and assert that it throws a BusinessException
         BusinessException exception = assertThrows(
@@ -106,7 +106,7 @@ class UserServiceTest {
         );
 
         verify(userRepository).findById(userId);
-        verify(userRepository).existsByUsername("UsernameUsed");
+        verify(userRepository).existsByUsernameIgnoreCase("UsernameUsed");
         verify(userRepository, never()).save(any());
         verify(userMapper, never()).updateUserFromRequest(any(), any());
     }
@@ -132,7 +132,7 @@ class UserServiceTest {
         assertEquals("User not found", exception.getMessage());
 
         verify(userRepository).findById(userId);
-        verify(userRepository, never()).existsByUsername(any());
+        verify(userRepository, never()).existsByUsernameIgnoreCase(any());
         verify(userRepository, never()).save(any());
         verify(userMapper, never()).updateUserFromRequest(any(), any());
     }
@@ -174,7 +174,7 @@ class UserServiceTest {
 
         // Verify the result
         verify(userRepository).findById(userId);
-        verify(userRepository, never()).existsByUsername(any());
+        verify(userRepository, never()).existsByUsernameIgnoreCase(any());
         verify(userMapper).updateUserFromRequest(updateProfileRequest, user);
         verify(userRepository).save(user);
         verify(userMapper).toUserProfileResponse(user);
@@ -211,7 +211,7 @@ class UserServiceTest {
         userService.updateCurrentUserProfile(request, userId);
 
         // Verify that the username uniqueness check was not performed since the username is unchanged
-        verify(userRepository, never()).existsByUsername(any());
+        verify(userRepository, never()).existsByUsernameIgnoreCase(any());
         verify(userMapper).updateUserFromRequest(request, user);
         verify(userRepository).save(user);
     }
