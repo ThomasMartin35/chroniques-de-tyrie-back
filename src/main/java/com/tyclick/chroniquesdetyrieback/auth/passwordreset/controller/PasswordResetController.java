@@ -1,5 +1,7 @@
 package com.tyclick.chroniquesdetyrieback.auth.passwordreset.controller;
 
+import com.tyclick.chroniquesdetyrieback.auth.passwordreset.dto.request.ResetPasswordRequest;
+import com.tyclick.chroniquesdetyrieback.auth.passwordreset.dto.response.ResetPasswordResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,7 +32,23 @@ public class PasswordResetController {
 
         return new ForgotPasswordResponse(
                 "If an account matches this email address, "
-                + "a password reset link has been sent."
+                        + "a password reset link has been sent."
         );
     }
+
+    @PostMapping("/reset-password")
+    public ResetPasswordResponse resetPassword(
+            @Valid @RequestBody ResetPasswordRequest request
+    ) {
+        passwordResetService.resetPassword(
+                request.token(),
+                request.password(),
+                request.confirmPassword()
+        );
+
+        return new ResetPasswordResponse(
+                "Password has been reset successfully."
+        );
+    }
+
 }

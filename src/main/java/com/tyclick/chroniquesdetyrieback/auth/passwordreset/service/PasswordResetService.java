@@ -2,6 +2,9 @@ package com.tyclick.chroniquesdetyrieback.auth.passwordreset.service;
 
 import java.time.Instant;
 
+import com.tyclick.chroniquesdetyrieback.auth.passwordreset.exception.InvalidPasswordResetTokenException;
+import com.tyclick.chroniquesdetyrieback.common.exception.BusinessException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +28,7 @@ public class PasswordResetService {
     private final TokenHasher tokenHasher;
     private final PasswordResetTokenProperties passwordResetProperties;
     private final PasswordResetNotificationSender passwordResetNotificationSender;
+    private final PasswordEncoder passwordEncoder;
 
     @Transactional
     public void requestPasswordReset(String email) {
@@ -50,5 +54,34 @@ public class PasswordResetService {
         passwordResetTokenRepository.save(passwordResetToken);
 
         passwordResetNotificationSender.sendPasswordResetLink(user.getEmail(), rawToken);
+    }
+
+    @Transactional
+    public void resetPassword(String rawToken, String password, String confirmPassword) {
+        if (!password.equals(confirmPassword)) {
+            throw new BusinessException("Passwords do not match");
+        }
+        String tokenHash = tokenHasher.hash(rawToken);
+        PasswordResetToken passwordResetToken = passwordResetTokenRepository.findByTokenHash(tokenHash)
+                .orElseThrow(InvalidPasswordResetTokenException::new);
+
+        Instant now = Instant.now();
+
+        if (passwordResetToken.getUsedAt() != null
+                || !passwordResetToken.getExpiresAt().isAfter(now)
+                || !Boolean.TRUE.equals(
+                        passwordResetToken.getUser().getIsActive()
+                )) {
+            throw new InvalidPasswordResetTokenException();
+        }
+
+        var user = passwordResetToken.getUser();
+        user.setPasswordHash(passwordEncoder.encode(password));
+        user.setLastPasswordChangeAt(now);
+
+        passwordResetToken.setUsedAt(now);
+
+        userRepository.save(user);
+        passwordResetTokenRepository.save(passwordResetToken);
     }
 }

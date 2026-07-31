@@ -10,7 +10,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.tyclick.chroniquesdetyrieback.auth.cookie.RefreshTokenCookieService;
+import com.tyclick.chroniquesdetyrieback.auth.refreshtoken.cookie.RefreshTokenCookieService;
 import com.tyclick.chroniquesdetyrieback.auth.dto.request.LoginRequest;
 import com.tyclick.chroniquesdetyrieback.auth.dto.request.RegisterRequest;
 import com.tyclick.chroniquesdetyrieback.auth.dto.response.LoginResponse;
@@ -48,9 +48,9 @@ public class AuthController {
 
         ResponseCookie refreshTokenCookie
                 = refreshTokenCookieService.create(
-                        loginResult.rawRefreshToken(),
-                        request.isRememberMe()
-                );
+                loginResult.rawRefreshToken(),
+                request.isRememberMe()
+        );
 
         response.addHeader(
                 HttpHeaders.SET_COOKIE,
