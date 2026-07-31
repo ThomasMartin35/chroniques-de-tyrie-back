@@ -1,6 +1,6 @@
-package com.tyclick.chroniquesdetyrieback.auth.cookie;
+package com.tyclick.chroniquesdetyrieback.auth.refreshtoken.cookie;
 
-import com.tyclick.chroniquesdetyrieback.auth.refreshtoken.RefreshTokenProperties;
+import com.tyclick.chroniquesdetyrieback.auth.refreshtoken.config.RefreshTokenProperties;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseCookie;
 import org.springframework.stereotype.Service;

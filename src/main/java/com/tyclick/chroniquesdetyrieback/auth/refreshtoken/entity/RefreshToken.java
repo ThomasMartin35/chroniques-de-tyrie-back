@@ -1,4 +1,4 @@
-package com.tyclick.chroniquesdetyrieback.auth.refreshtoken;
+package com.tyclick.chroniquesdetyrieback.auth.refreshtoken.entity;
 
 import com.tyclick.chroniquesdetyrieback.user.entity.User;
 import jakarta.persistence.*;
@@ -18,7 +18,6 @@ import java.util.UUID;
 public class RefreshToken {
 
     // ATTRIBUTES //
-
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
@@ -33,13 +32,11 @@ public class RefreshToken {
     private Instant revokedAt;
 
     // RELATIONS //
-
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
     // TIMESTAMP //
-
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;

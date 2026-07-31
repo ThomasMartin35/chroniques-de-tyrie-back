@@ -1,4 +1,6 @@
-package com.tyclick.chroniquesdetyrieback.auth.refreshtoken;
+package com.tyclick.chroniquesdetyrieback.auth.refreshtoken.repository;
+
+import com.tyclick.chroniquesdetyrieback.auth.refreshtoken.entity.RefreshToken;
 
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;

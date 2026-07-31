@@ -1,6 +1,16 @@
 package com.tyclick.chroniquesdetyrieback.auth.controller;
 
-import com.tyclick.chroniquesdetyrieback.auth.cookie.RefreshTokenCookieService;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
+import org.springframework.web.bind.annotation.CookieValue;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.tyclick.chroniquesdetyrieback.auth.refreshtoken.cookie.RefreshTokenCookieService;
 import com.tyclick.chroniquesdetyrieback.auth.dto.request.LoginRequest;
 import com.tyclick.chroniquesdetyrieback.auth.dto.request.RegisterRequest;
 import com.tyclick.chroniquesdetyrieback.auth.dto.response.LoginResponse;
@@ -8,13 +18,10 @@ import com.tyclick.chroniquesdetyrieback.auth.dto.response.RegisterResponse;
 import com.tyclick.chroniquesdetyrieback.auth.model.LoginResult;
 import com.tyclick.chroniquesdetyrieback.auth.service.AuthService;
 import com.tyclick.chroniquesdetyrieback.common.exception.AuthenticationFailedException;
+
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseCookie;
-import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -39,11 +46,11 @@ public class AuthController {
     ) {
         LoginResult loginResult = authService.login(request);
 
-        ResponseCookie refreshTokenCookie =
-                refreshTokenCookieService.create(
-                        loginResult.rawRefreshToken(),
-                        request.isRememberMe()
-                );
+        ResponseCookie refreshTokenCookie
+                = refreshTokenCookieService.create(
+                loginResult.rawRefreshToken(),
+                request.isRememberMe()
+        );
 
         response.addHeader(
                 HttpHeaders.SET_COOKIE,
@@ -82,8 +89,8 @@ public class AuthController {
             authService.logout(refreshToken);
         }
 
-        ResponseCookie deletedCookie =
-                refreshTokenCookieService.delete();
+        ResponseCookie deletedCookie
+                = refreshTokenCookieService.delete();
 
         response.addHeader(
                 HttpHeaders.SET_COOKIE,
