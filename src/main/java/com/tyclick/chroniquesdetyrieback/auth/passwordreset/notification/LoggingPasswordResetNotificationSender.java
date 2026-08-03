@@ -12,7 +12,10 @@ public class LoggingPasswordResetNotificationSender
     @Override
     public void sendPasswordResetLink(String email, String rawToken) {
         log.info(
-                "Password reset requested for email '{}'. Raw token: {}",
+                "Password reset requested for email '{}'. "
+                        + "Reset link: "
+                        + "http://localhost:5173/"
+                        + "reinitialisation-mot-de-passe?token={}",
                 email,
                 rawToken
         );
