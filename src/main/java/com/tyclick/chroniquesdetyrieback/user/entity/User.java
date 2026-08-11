@@ -3,19 +3,13 @@ package com.tyclick.chroniquesdetyrieback.user.entity;
 import java.time.Instant;
 import java.util.UUID;
 
+import com.tyclick.chroniquesdetyrieback.media.entity.Media;
+import jakarta.persistence.*;
 import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -60,21 +54,9 @@ public class User {
 
     // RELATIONS //
 
-//    @ManyToOne(fetch = FetchType.LAZY)
-//    @JoinColumn(name = "avatar_id")
-//    private Media avatar;
-//
-//    @OneToMany(mappedBy = "author")
-//    private Set<Content> contents = new HashSet<>();
-//
-//    @OneToMany(mappedBy = "author")
-//    private Set<Comment> comments = new HashSet<>();
-//
-//    @OneToMany(mappedBy = "reportedBy")
-//    private Set<CommentReport> reports = new HashSet<>();
-//
-//    @OneToMany(mappedBy = "uploadedBy")
-//    private Set<Media> uploadedMedia = new HashSet<>();
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "avatar_id", unique = true)
+    private Media avatar;
 
     // TIMESTAMPS //
 
