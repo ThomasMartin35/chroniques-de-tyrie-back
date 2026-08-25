@@ -3,6 +3,7 @@ package com.tyclick.chroniquesdetyrieback.user.controller;
 import com.tyclick.chroniquesdetyrieback.common.dto.response.MessageResponse;
 import com.tyclick.chroniquesdetyrieback.media.avatar.dto.response.AvatarResponse;
 import com.tyclick.chroniquesdetyrieback.media.avatar.service.UserAvatarService;
+import com.tyclick.chroniquesdetyrieback.media.delivery.url.PublicMediaUrlBuilder;
 import com.tyclick.chroniquesdetyrieback.media.entity.Media;
 import com.tyclick.chroniquesdetyrieback.user.dto.request.ChangePasswordRequest;
 import com.tyclick.chroniquesdetyrieback.user.dto.request.UpdateProfileRequest;
@@ -16,7 +17,6 @@ import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequestMapping("/api/users")
@@ -26,6 +26,7 @@ public class UserController {
     private final UserMapper userMapper;
     private final UserService userService;
     private final UserAvatarService userAvatarService;
+    private final PublicMediaUrlBuilder publicMediaUrlBuilder;
 
     @GetMapping("/me")
     public UserProfileResponse getCurrentUser(@AuthenticationPrincipal CustomUserDetails customUserDetails) {
@@ -57,11 +58,7 @@ public class UserController {
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Media avatar = userAvatarService.uploadOrReplaceAvatar(userDetails.getUser().getId(), file);
-        String avatarUrl = ServletUriComponentsBuilder
-                .fromCurrentContextPath()
-                .path("/api/media/{mediaId}")
-                .buildAndExpand(avatar.getId())
-                .toUriString();
+        String avatarUrl = publicMediaUrlBuilder.build(avatar);
 
         return new AvatarResponse(avatar.getId(), avatarUrl);
     }

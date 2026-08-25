@@ -2,6 +2,7 @@ package com.tyclick.chroniquesdetyrieback.media.storage.local;
 
 import com.tyclick.chroniquesdetyrieback.media.storage.MediaStorage;
 import com.tyclick.chroniquesdetyrieback.media.storage.config.MediaStorageProperties;
+import com.tyclick.chroniquesdetyrieback.media.storage.exception.MediaFileNotFoundException;
 import com.tyclick.chroniquesdetyrieback.media.storage.exception.MediaStorageException;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -137,9 +138,7 @@ public class LocalMediaStorage implements MediaStorage {
 
             if (!Files.isRegularFile(targetPath)
                     || !Files.isReadable(targetPath)) {
-                throw new MediaStorageException(
-                        "Media file does not exist or is not readable"
-                );
+                throw new MediaFileNotFoundException();
             }
 
             return new UrlResource(targetPath.toUri());
