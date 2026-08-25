@@ -3,6 +3,7 @@ package com.tyclick.chroniquesdetyrieback.common.exception;
 import com.tyclick.chroniquesdetyrieback.common.dto.response.ApiErrorResponse;
 import com.tyclick.chroniquesdetyrieback.media.avatar.exception.AvatarFileTooLargeException;
 import com.tyclick.chroniquesdetyrieback.media.avatar.exception.UnsupportedAvatarFormatException;
+import com.tyclick.chroniquesdetyrieback.media.delivery.exception.PublicMediaNotFoundException;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -134,6 +135,30 @@ public class GlobalExceptionHandler {
 
         return ResponseEntity
                 .status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                .body(errorResponse);
+    }
+
+    /**
+     * Handle PublicMediaNotFoundException and return a structured error response indicating that the requested public media was not found.
+     * @param exception The exception thrown when the requested public media is not found.
+     * @param request The HttpServletRequest object to get the request URI for the error response.
+     * @return A ResponseEntity containing the ApiErrorResponse with details about the public media not found error.
+     */
+    @ExceptionHandler(PublicMediaNotFoundException.class)
+    public ResponseEntity<ApiErrorResponse> handlePublicMediaNotFound(
+            PublicMediaNotFoundException exception,
+            HttpServletRequest request
+    ) {
+        ApiErrorResponse errorResponse = ApiErrorResponse.builder()
+                .timestamp(Instant.now())
+                .status(HttpStatus.NOT_FOUND.value())
+                .error(HttpStatus.NOT_FOUND.getReasonPhrase())
+                .message(exception.getMessage())
+                .path(request.getRequestURI())
+                .build();
+
+        return ResponseEntity
+                .status(HttpStatus.NOT_FOUND)
                 .body(errorResponse);
     }
 

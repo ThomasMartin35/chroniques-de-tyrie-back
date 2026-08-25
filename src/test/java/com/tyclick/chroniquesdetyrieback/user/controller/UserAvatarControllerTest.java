@@ -33,6 +33,7 @@ import com.tyclick.chroniquesdetyrieback.media.avatar.exception.AvatarFileTooLar
 import com.tyclick.chroniquesdetyrieback.media.avatar.exception.InvalidAvatarImageException;
 import com.tyclick.chroniquesdetyrieback.media.avatar.exception.UnsupportedAvatarFormatException;
 import com.tyclick.chroniquesdetyrieback.media.avatar.service.UserAvatarService;
+import com.tyclick.chroniquesdetyrieback.media.delivery.url.PublicMediaUrlBuilder;
 import com.tyclick.chroniquesdetyrieback.media.entity.Media;
 import com.tyclick.chroniquesdetyrieback.user.entity.User;
 import com.tyclick.chroniquesdetyrieback.user.entity.UserRole;
@@ -57,6 +58,9 @@ class UserAvatarControllerTest {
     private UserAvatarService userAvatarService;
 
     @MockitoBean
+    private PublicMediaUrlBuilder publicMediaUrlBuilder;
+
+    @MockitoBean
     private JwtService jwtService;
 
     @MockitoBean
@@ -75,6 +79,8 @@ class UserAvatarControllerTest {
                 eq(userId),
                 any(MultipartFile.class)
         )).thenReturn(savedAvatar);
+        when(publicMediaUrlBuilder.build(savedAvatar))
+                .thenReturn("http://localhost/api/media/" + mediaId);
 
         mockMvc.perform(multipart(HttpMethod.PUT, ENDPOINT)
                         .file(file)
