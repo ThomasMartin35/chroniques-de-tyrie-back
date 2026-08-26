@@ -1,6 +1,7 @@
 package com.tyclick.chroniquesdetyrieback.media.avatar.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
@@ -23,6 +24,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.mock.web.MockMultipartFile;
 
 import com.tyclick.chroniquesdetyrieback.common.exception.BusinessException;
+import com.tyclick.chroniquesdetyrieback.media.avatar.event.AvatarDeletionEvent;
 import com.tyclick.chroniquesdetyrieback.media.avatar.event.AvatarReplacementEvent;
 import com.tyclick.chroniquesdetyrieback.media.avatar.exception.InvalidAvatarImageException;
 import com.tyclick.chroniquesdetyrieback.media.avatar.processing.AvatarImageProcessor;
@@ -261,6 +263,75 @@ class UserAvatarServiceTest {
         verifyNoInteractions(
                 mediaStorage,
                 mediaRepository,
+                eventPublisher
+        );
+    }
+
+    @Test
+    void shouldDeleteAvatarAndPublishCleanupEvent() {
+        String storageKey = "avatars/avatar-to-delete.webp";
+        Media avatar = Media.builder()
+                .id(UUID.randomUUID())
+                .storageKey(storageKey)
+                .build();
+        User user = User.builder()
+                .id(UUID.randomUUID())
+                .avatar(avatar)
+                .build();
+
+        when(userRepository.findById(user.getId()))
+                .thenReturn(Optional.of(user));
+
+        userAvatarService.deleteAvatar(user.getId());
+
+        assertNull(user.getAvatar());
+        verify(userRepository).saveAndFlush(user);
+        verify(mediaRepository).delete(avatar);
+        verify(mediaRepository).flush();
+        verify(eventPublisher).publishEvent(
+                new AvatarDeletionEvent(storageKey)
+        );
+        verifyNoInteractions(mediaStorage, avatarImageProcessor);
+    }
+
+    @Test
+    void shouldSucceedWithoutChangesWhenUserHasNoAvatar() {
+        User user = User.builder()
+                .id(UUID.randomUUID())
+                .build();
+
+        when(userRepository.findById(user.getId()))
+                .thenReturn(Optional.of(user));
+
+        userAvatarService.deleteAvatar(user.getId());
+
+        verify(userRepository).findById(user.getId());
+        verifyNoMoreInteractions(userRepository);
+        verifyNoInteractions(
+                mediaRepository,
+                mediaStorage,
+                avatarImageProcessor,
+                eventPublisher
+        );
+    }
+
+    @Test
+    void shouldRejectDeletionWhenUserDoesNotExist() {
+        UUID userId = UUID.randomUUID();
+
+        when(userRepository.findById(userId))
+                .thenReturn(Optional.empty());
+
+        BusinessException exception = assertThrows(
+                BusinessException.class,
+                () -> userAvatarService.deleteAvatar(userId)
+        );
+
+        assertEquals("User not found", exception.getMessage());
+        verifyNoInteractions(
+                mediaRepository,
+                mediaStorage,
+                avatarImageProcessor,
                 eventPublisher
         );
     }

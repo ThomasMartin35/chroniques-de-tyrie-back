@@ -13,6 +13,7 @@ import com.tyclick.chroniquesdetyrieback.user.mapper.UserMapper;
 import com.tyclick.chroniquesdetyrieback.user.service.UserService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -61,5 +62,11 @@ public class UserController {
         String avatarUrl = publicMediaUrlBuilder.build(avatar);
 
         return new AvatarResponse(avatar.getId(), avatarUrl);
+    }
+
+    @DeleteMapping("/me/avatar")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void deleteCurrentUserAvatar(@AuthenticationPrincipal CustomUserDetails userDetails) {
+        userAvatarService.deleteAvatar(userDetails.getUser().getId());
     }
 }

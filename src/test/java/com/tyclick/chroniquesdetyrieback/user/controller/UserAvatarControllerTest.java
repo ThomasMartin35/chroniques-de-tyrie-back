@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.authentication;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -169,6 +170,27 @@ class UserAvatarControllerTest {
     void shouldRejectUnauthenticatedUpload() throws Exception {
         mockMvc.perform(multipart(HttpMethod.PUT, ENDPOINT)
                         .file(createFile())
+                        .with(csrf()))
+                .andExpect(status().isUnauthorized());
+
+        verifyNoInteractions(userAvatarService);
+    }
+
+    @Test
+    void shouldDeleteAvatarForAuthenticatedUser() throws Exception {
+        UUID userId = UUID.randomUUID();
+
+        mockMvc.perform(delete(ENDPOINT)
+                        .with(authentication(authenticationFor(userId)))
+                        .with(csrf()))
+                .andExpect(status().isNoContent());
+
+        verify(userAvatarService).deleteAvatar(userId);
+    }
+
+    @Test
+    void shouldRejectUnauthenticatedDeletion() throws Exception {
+        mockMvc.perform(delete(ENDPOINT)
                         .with(csrf()))
                 .andExpect(status().isUnauthorized());
 
