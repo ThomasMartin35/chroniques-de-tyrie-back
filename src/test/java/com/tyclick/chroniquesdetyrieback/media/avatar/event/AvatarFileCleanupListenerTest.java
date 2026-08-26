@@ -79,4 +79,29 @@ class AvatarFileCleanupListenerTest {
                 () -> listener.handleSuccessfulReplacement(event)
         );
     }
+
+    @Test
+    void shouldDeleteAvatarFileAfterSuccessfulDeletion() {
+        AvatarDeletionEvent event = new AvatarDeletionEvent(
+                "avatars/deleted.webp"
+        );
+
+        listener.handleSuccessfulDeletion(event);
+
+        verify(mediaStorage).delete("avatars/deleted.webp");
+    }
+
+    @Test
+    void shouldNotPropagateDeletionCleanupFailure() {
+        AvatarDeletionEvent event = new AvatarDeletionEvent(
+                "avatars/deleted.webp"
+        );
+        doThrow(new MediaStorageException("Deletion failed"))
+                .when(mediaStorage)
+                .delete("avatars/deleted.webp");
+
+        assertDoesNotThrow(
+                () -> listener.handleSuccessfulDeletion(event)
+        );
+    }
 }

@@ -1,6 +1,7 @@
 package com.tyclick.chroniquesdetyrieback.media.avatar.service;
 
 import com.tyclick.chroniquesdetyrieback.common.exception.BusinessException;
+import com.tyclick.chroniquesdetyrieback.media.avatar.event.AvatarDeletionEvent;
 import com.tyclick.chroniquesdetyrieback.media.avatar.event.AvatarReplacementEvent;
 import com.tyclick.chroniquesdetyrieback.media.avatar.processing.AvatarImageProcessor;
 import com.tyclick.chroniquesdetyrieback.media.avatar.processing.ProcessedAvatarImage;
@@ -33,8 +34,9 @@ public class UserAvatarService {
 
     /**
      * Uploads or replaces the avatar for the specified user. If the user already has an avatar, it will be replaced with the new one.
+     *
      * @param userId the ID of the user whose avatar is being uploaded or replaced
-     * @param file the new avatar image file to upload
+     * @param file   the new avatar image file to upload
      * @return the newly uploaded or replaced avatar media entity
      * @throws BusinessException if the user is not found or if there are issues with processing the avatar image
      */
@@ -85,6 +87,7 @@ public class UserAvatarService {
 
     /**
      * Normalizes the original filename by removing path separators, control characters, and trimming whitespace.
+     *
      * @param originalFilename the original filename to normalize
      * @return the normalized filename, or a default value if the original filename is null or blank
      */
@@ -119,6 +122,37 @@ public class UserAvatarService {
         }
 
         return normalizedFilename;
+    }
+
+    /**
+     * Deletes the avatar associated with the specified user.
+     * If the user has no avatar, the operation succeeds without making changes.
+     *
+     * @param userId the ID of the user whose avatar must be deleted
+     * @throws BusinessException if the user does not exist
+     */
+    @Transactional
+    public void deleteAvatar(UUID userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new BusinessException("User not found"));
+
+        Media avatar = user.getAvatar();
+
+        if (avatar == null) {
+            return;
+        }
+
+        String storageKey = avatar.getStorageKey();
+
+        user.setAvatar(null);
+        userRepository.saveAndFlush(user);
+
+        mediaRepository.delete(avatar);
+        mediaRepository.flush();
+
+        eventPublisher.publishEvent(
+                new AvatarDeletionEvent(storageKey)
+        );
     }
 
 }
